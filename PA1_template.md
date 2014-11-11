@@ -1,7 +1,8 @@
 Reproducible Research Project 1
 ===============================
 
-```{r Packages, echo=TRUE}
+
+```r
 library(data.table)
 library(ggplot2)
 library(reshape2)
@@ -23,10 +24,30 @@ The variables included in this dataset are:
 
 The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
 
-```{r ReadingData, echo=TRUE}
-unzip("ActivityMonitoring.zip", overwrite = T, unzip="internal")
 
+```r
+unzip("ActivityMonitoring.zip", overwrite = T, unzip="internal")
+```
+
+```
+## Warning in unzip("ActivityMonitoring.zip", overwrite = T, unzip =
+## "internal"): error 1 in extracting from zip file
+```
+
+```r
 ActivityData <- data.table(read.csv("activity.csv", colClasses=c("integer","Date","integer")))
+```
+
+```
+## Warning in file(file, "rt"): cannot open file 'activity.csv': No such file
+## or directory
+```
+
+```
+## Error in file(file, "rt"): cannot open the connection
+```
+
+```r
 setkey(ActivityData, date, interval)
 ```
 
@@ -37,7 +58,8 @@ It might therefore lead to misleading and inaccurate graphs.
 
 To overcome this the following code has been used:
 
-```{r Processing Data, echo=TRUE}
+
+```r
 times <- ActivityData$interval
 hours <- floor(times/100) ##e.g 2345/100=23.45 and so rounding down gives 23 as the hour.
 minutes <- times%%100 ##This finds the remainder upon division. e.g 2345/100=23 rem 45, giving 45 as the minutes.
@@ -58,7 +80,8 @@ ValidActivityData <- ActivityData[!is.na(ActivityData$steps)]
 #####Preliminary Calulations
 Using the ***tapply()*** function in the base package allows the computation of the total number of *steps* taken per *date*,  
 ignoring any missing values. This leads to the follwing data table being produced:
-```{r Q1 Calcs, echo=TRUE}
+
+```r
 StepsPerDay <- with(ValidActivityData,tapply(steps, date, sum, na.rm=T))
 StepsPerDay <- data.table(melt(StepsPerDay, varnames="Date", value.name="TotalSteps"))
 MeanDaySteps <- round(mean(StepsPerDay$TotalSteps),4)
@@ -67,9 +90,19 @@ options(scipen=1, digits=4)
 head(StepsPerDay,5)
 ```
 
+```
+##          Date TotalSteps
+## 1: 2012-10-02        126
+## 2: 2012-10-03      11352
+## 3: 2012-10-04      12116
+## 4: 2012-10-05      13294
+## 5: 2012-10-06      15420
+```
+
 #####Plotting the Histogram
 The table can then be used to plot a histogram showing the distribution of daily total steps:
-```{r Q1 Histogram, echo=TRUE}
+
+```r
 DayHist <- ggplot(StepsPerDay, aes(x=TotalSteps, fill=..count..)) +
      geom_histogram(origin = 0, binwidth = 500) + 
      scale_fill_gradient("Legend", low="lightsalmon1", high="lightsalmon4") +
@@ -78,28 +111,47 @@ DayHist <- ggplot(StepsPerDay, aes(x=TotalSteps, fill=..count..)) +
 print(DayHist)
 ```
 
+![plot of chunk Q1 Histogram](figure/Q1 Histogram-1.png) 
+
 Here, it is shown that the most common number of steps taken in a day is between 10,000 and 10,500,  
 with the majority of days seeing somewhere between 7,000 and 15,500 steps taken.
 
-Simple calculations show that the mean number of steps taken per day is **`r MeanDaySteps`**,  
-with the median number of steps being **`r MedianDaySteps`**.
+Simple calculations show that the mean number of steps taken per day is **10766.1887**,  
+with the median number of steps being **10765**.
 
 ###PART 2: What is the average daily activity pattern?
 
 #####Preliminary Calculations
 Again, using the ***tapply()*** function allows the mean number of steps taken per 5 minute interval to be found.  
 It produces a data table like the following:
-```{r Q2 Calcs, echo=TRUE}
+
+```r
 StepsPer5Min <- with(ValidActivityData, tapply(steps, time, mean, na.rm=T))
 StepsPer5Min <- data.table(melt(StepsPer5Min, varnames="time",value.name="AverageSteps"))
 StepsPer5Min
+```
+
+```
+##       time AverageSteps
+##   1: 00:00      1.71698
+##   2: 00:05      0.33962
+##   3: 00:10      0.13208
+##   4: 00:15      0.15094
+##   5: 00:20      0.07547
+##  ---                   
+## 284: 23:35      4.69811
+## 285: 23:40      3.30189
+## 286: 23:45      0.64151
+## 287: 23:50      0.22642
+## 288: 23:55      1.07547
 ```
 
 #####Plotting the Line Graph
 This table is then used to produce a line graph to show how the average number of steps changes  
 as a day progresses.  
 
-```{r Q2 Line Graph, echo=TRUE}
+
+```r
 ##Code used in plotting
 StepsPer5Min$RowNum <- as.numeric(rownames(StepsPer5Min))
 MaxAverage <- StepsPer5Min[StepsPer5Min$AverageSteps == max(StepsPer5Min$AverageSteps),]
@@ -119,9 +171,11 @@ IntervalTS <- ggplot(StepsPer5Min, aes(x=RowNum, y=AverageSteps)) +
 print(IntervalTS)
 ```
 
+![plot of chunk Q2 Line Graph](figure/Q2 Line Graph-1.png) 
+
 Marked on the graph is the interval corresponding to the maximum average number of steps in an interval.  
-Therefore, the interval which has the largest average number of steps occured at **`r MaxAverage[[1]]`**,  
-which had an average of **`r MaxAverage[[2]]`** steps.
+Therefore, the interval which has the largest average number of steps occured at **08:35**,  
+which had an average of **206.1698** steps.
 
 ###PART 3: Imputing Missing Values
 
@@ -129,14 +183,23 @@ which had an average of **`r MaxAverage[[2]]`** steps.
 Filtering the ActivityData to only include rows where NA appears, and producing a table to show which date  
 they appeared on, will result in the following:
 
-```{r Q3 Missing Values, echo=TRUE}
+
+```r
 MissingValues <- ActivityData[is.na(ActivityData$steps),]
 MissingTable <- table(MissingValues$date)
 MissingTable
 ```
-So it is clear that all missing values were observed on `r length(MissingTable)` of the days.  
+
+```
+## 
+## 2012-10-01 2012-10-08 2012-11-01 2012-11-04 2012-11-09 2012-11-10 
+##        288        288        288        288        288        288 
+## 2012-11-14 2012-11-30 
+##        288        288
+```
+So it is clear that all missing values were observed on 8 of the days.  
 Each day had 288 missing values, which indicates that the entire day was unaccounted for.
-This leads to a total of **`r (length(MissingTable)*288)`** missing values.
+This leads to a total of **2304** missing values.
 
 #####Imputing Strategy
 The method chosen here is probably the easiest to implement. It simply uses the **interval average** (found in part 2) to replace any NA values.  
@@ -147,8 +210,16 @@ But for the sake of this project it is sufficient, and was also explicitly state
 After replacing the NA values seen in the original data with the corresponding interval averages (rounded as steps are an integer) the  
 following table can be found:
 
-```{r Q3 Imputation, echo=TRUE}
+
+```r
 Joined <- merge(ActivityData, StepsPer5Min, by="time", all.x=TRUE)
+```
+
+```
+## Error in merge.data.table(ActivityData, StepsPer5Min, by = "time", all.x = TRUE): x has some duplicated column name(s): time,datetime. Please remove or rename the duplicate(s) and try again.
+```
+
+```r
 Joined$ImputedSteps <- Joined$steps
 Joined$ImputedSteps[is.na(Joined$ImputedSteps)] <- round(Joined$AverageSteps[is.na(Joined$ImputedSteps)],0)
 
@@ -157,11 +228,27 @@ setkey(Imp.ActivityData, date, time)
 Imp.ActivityData
 ```
 
+```
+##              date  time ImputedSteps
+##     1: 2012-10-01 00:00            2
+##     2: 2012-10-01 00:05            0
+##     3: 2012-10-01 00:10            0
+##     4: 2012-10-01 00:15            0
+##     5: 2012-10-01 00:20            0
+##    ---                              
+## 17564: 2012-11-30 23:35            5
+## 17565: 2012-11-30 23:40            3
+## 17566: 2012-11-30 23:45            1
+## 17567: 2012-11-30 23:50            0
+## 17568: 2012-11-30 23:55            1
+```
+
 The average number of steps per day can then be found in a similar way to part 1, ready for use in the histogram.
 
 #####Histogram for Imputed Steps
 The histogram is produced in the following way:
-```{r Q3 Histogram, echo=TRUE}
+
+```r
 ##Initial Calculations
 Imp.StepsPerDay <- with(Imp.ActivityData,tapply(ImputedSteps, date, sum, na.rm=T))
 Imp.StepsPerDay <- data.table(melt(Imp.StepsPerDay, varnames="Date", value.name="TotalSteps"))
@@ -178,12 +265,15 @@ Imp.DayHist <- ggplot(Imp.StepsPerDay, aes(x=TotalSteps, fill=..count..)) +
 print(Imp.DayHist)
 ```
 
+![plot of chunk Q3 Histogram](figure/Q3 Histogram-1.png) 
+
 This is similar to the histogram where NA values were ignored, but there is a notable rise in the number of observations seen to have  
 between 10,500 and 11,000 total steps in a day.  
-Imputation has caused the mean to fall slightly from **`r MeanDaySteps`** to **`r Imp.MeanDaySteps`**, and   the median to fall from **`r MedianDaySteps`** to **`r Imp.MedianDaySteps`**.
+Imputation has caused the mean to fall slightly from **10766.1887** to **10765.6393**, and   the median to fall from **10765** to **10762**.
 
 To more accurately compare the results for non-imputation vs imputation, a density plot can be produced:
-``` {r Q3 Density Plot, echo=TRUE}
+
+```r
 Original <- data.table(TotalSteps = StepsPerDay$TotalStep)
 Original$Imputed <- 'NO'
 New <- data.table(TotalSteps = Imp.StepsPerDay$TotalSteps)
@@ -195,6 +285,8 @@ DensPlot <- ggplot(Comparison, aes(TotalSteps, fill = Imputed)) +
                ggtitle("Comparing Density of Total Daily Steps Before and After Imputation")
 print(DensPlot)
 ```
+
+![plot of chunk Q3 Density Plot](figure/Q3 Density Plot-1.png) 
 
 It is apparent that the only significant change as a result of imputing is the much larger spike in the middle.  
 The rest of the distribution may seem to have become less "smooth", but that is a direct result of the taller spike taking a  
@@ -214,7 +306,8 @@ Other packages could be the **mi** package, **Amelia** package, **mice** package
 The first stage here is to produce an extra column in the *Imp.ActivityData* data table that distinguishes between weekdays and weekends.  
 This is done by first assiging values for weekdays and weekends, and using the ***weekdays()*** function on the date column:
 
-``` {r Q4 Determining Weekdays, echo=TRUE}
+
+```r
 Imp.ActivityData$WeekDay <- weekdays(Imp.ActivityData$date)
 WeekDay <- c("Monday","Tuesday","Wednesday","Thursday","Friday", "Saturday", "Sunday")
 DayClass <- c(rep("WeekDay",5), rep("WeekEnd",2))
@@ -225,14 +318,26 @@ setkey(Imp.ActivityData,date, time)
 
 Having done that it is then a simple case of aggregating by *time* and *WeekdayClass* to determing the average number of steps per interval.  
 This leads to the following data table:
-``` {r Q4 Aggregating, echo=TRUE}
+
+```r
 DayClassMeans <- aggregate(ImputedSteps~time+DayClass, data=Imp.ActivityData, mean)
 head(DayClassMeans)
 ```
 
+```
+##    time DayClass ImputedSteps
+## 1 00:00  WeekDay      2.28889
+## 2 00:05  WeekDay      0.40000
+## 3 00:10  WeekDay      0.15556
+## 4 00:15  WeekDay      0.17778
+## 5 00:20  WeekDay      0.08889
+## 6 00:25  WeekDay      1.57778
+```
+
 #####Plotting multiple line graphs
 Finally, a couple more computations allow the line graph to be produced that can compare weekdays to weekends:
-```{r Q4 Line Graphs, echo=TRUE}
+
+```r
 DayClassMeans$RowNum <- rep(seq(1:288),2)
 HourBreaks2 <- DayClassMeans$time[seq(1,nrow(DayClassMeans),by=24)]
 
@@ -243,8 +348,9 @@ MeanDayClass <- ggplot(DayClassMeans, aes(x=RowNum, y=ImputedSteps, color=DayCla
                     theme(legend.position = "none") + ylab("Number of Steps") + xlab("Interval") +
                     ggtitle("Comparing Mean Steps Over 5 Minute Intervals Between Weekdays And Weekends")
 print(MeanDayClass)
-
 ```
+
+![plot of chunk Q4 Line Graphs](figure/Q4 Line Graphs-1.png) 
 
 It can therefore be seen that activity (based on steps) begins earlier during the week, typically starting at around 06:00am. Activity on the weekends,  
 however, has a more gradual build up and does not really get going until around 08:00am.  
