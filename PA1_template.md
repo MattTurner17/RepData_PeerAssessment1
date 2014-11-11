@@ -13,7 +13,7 @@ library(reshape2)
 The Data can be downloaded using the link:
 [Download Step Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
 
-Save the .zip file as ***ActivityMonitoring.zip*** in your working directory.
+Save the .zip file as ***activity.zip*** in your working directory.
 
 The variables included in this dataset are:
 
@@ -26,28 +26,9 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 
 
 ```r
-unzip("ActivityMonitoring.zip", overwrite = T, unzip="internal")
-```
+unzip("activity.zip", overwrite = T, unzip="internal")
 
-```
-## Warning in unzip("ActivityMonitoring.zip", overwrite = T, unzip =
-## "internal"): error 1 in extracting from zip file
-```
-
-```r
 ActivityData <- data.table(read.csv("activity.csv", colClasses=c("integer","Date","integer")))
-```
-
-```
-## Warning in file(file, "rt"): cannot open file 'activity.csv': No such file
-## or directory
-```
-
-```
-## Error in file(file, "rt"): cannot open the connection
-```
-
-```r
 setkey(ActivityData, date, interval)
 ```
 
@@ -213,13 +194,6 @@ following table can be found:
 
 ```r
 Joined <- merge(ActivityData, StepsPer5Min, by="time", all.x=TRUE)
-```
-
-```
-## Error in merge.data.table(ActivityData, StepsPer5Min, by = "time", all.x = TRUE): x has some duplicated column name(s): time,datetime. Please remove or rename the duplicate(s) and try again.
-```
-
-```r
 Joined$ImputedSteps <- Joined$steps
 Joined$ImputedSteps[is.na(Joined$ImputedSteps)] <- round(Joined$AverageSteps[is.na(Joined$ImputedSteps)],0)
 
